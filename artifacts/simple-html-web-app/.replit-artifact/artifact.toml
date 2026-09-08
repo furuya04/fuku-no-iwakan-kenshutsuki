@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "シンプルHTML Webアプリ"
+description = "HTML、CSS、JavaScriptのコードを後から追加できる、空のWebアプリ用の土台です。"
+version = "1.0.0"
+id = "artifacts/simple-html-web-app"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19364
+
+[services.development]
+run = "pnpm --filter @workspace/simple-html-web-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/simple-html-web-app", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/simple-html-web-app/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19364"
+BASE_PATH = "/"
