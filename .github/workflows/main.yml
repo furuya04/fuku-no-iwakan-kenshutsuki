@@ -1,1 +1,20 @@
+name: Validate site
 
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Validate required site files
+        run: |
+          test -f index.html
+          test -f app.js
+          test -f style.css
+          grep -q "服の違和感検知器" index.html
