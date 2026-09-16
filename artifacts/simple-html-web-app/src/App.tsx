@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 
 type Finding = { category: string; title: string; detail: string; level: 'low' | 'mid' | 'high' };
-
 type Analysis = { score: number; summary: string; findings: Finding[] };
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
@@ -61,6 +60,7 @@ function analyzeImage(file: File): Promise<Analysis> {
 function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoName, setPhotoName] = useState('');
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
@@ -70,19 +70,18 @@ function App() {
   useEffect(() => () => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); }, []);
 
   const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0]; event.currentTarget.value = '';
-    if (!file || !file.type.startsWith('image/')) return;
-    const nextUrl = URL.createObjectURL(file);
+    const nextFile = event.currentTarget.files?.[0];
+    if (!nextFile || !nextFile.type.startsWith('image/')) return;
+    const nextUrl = URL.createObjectURL(nextFile);
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     objectUrlRef.current = nextUrl;
-    setPhotoUrl(nextUrl); setPhotoName(file.name); setAnalysis(null); setError('');
+    setFile(nextFile); setPhotoUrl(nextUrl); setPhotoName(nextFile.name); setAnalysis(null); setError('');
   };
 
   const runAnalysis = async () => {
-    const fileInput = inputRef.current;
-    if (!fileInput?.files?.[0]) { setError('写真をもう一度選択してください'); return; }
+    if (!file) { setError('写真を選択してください'); return; }
     setBusy(true); setError('');
-    try { setAnalysis(await analyzeImage(fileInput.files[0])); }
+    try { setAnalysis(await analyzeImage(file)); }
     catch (e) { setError(e instanceof Error ? e.message : '分析に失敗しました'); }
     finally { setBusy(false); }
   };
@@ -93,13 +92,12 @@ function App() {
         <header className="outfit-header"><div className="outfit-mark">PRIVATE STYLING COMPANION</div><div className="outfit-meta">01 / 01</div></header>
         <section className="outfit-hero"><p className="outfit-eyebrow">LOOK CHECK</p><h1 className="outfit-title">服の違和感検知器</h1><p className="outfit-copy">「なんか違う」を、色・シルエット・季節感からチェック。</p></section>
         <section className="outfit-workspace" aria-label="コーデ写真の選択">
-          <input ref={inputRef} className="hidden-file-input" type="file" accept="image/*" onChange={handlePhotoChange} />
+          <input ref={inputRef} id="outfit-photo" className="hidden-file-input" type="file" accept="image/*" onChange={handlePhotoChange} />
           {photoUrl ? <>
             <div className="photo-preview-surface"><img className="photo-preview" src={photoUrl} alt="選択したコーデの写真" /><span className="photo-preview-caption">{photoName || 'TODAY’S LOOK'}</span></div>
             <div className="photo-actions"><button className="analyze-button" type="button" onClick={runAnalysis} disabled={busy}>{busy ? '分析中…' : 'このコーデを分析する'}</button><button className="reselect-button" type="button" onClick={() => inputRef.current?.click()}>写真を選び直す</button></div>
             {error && <p className="analysis-notice" role="alert">{error}</p>}
           </> : <div className="photo-drop"><div className="photo-prompt"><div className="photo-glyph" aria-hidden="true">＋</div><p className="photo-prompt-title">今日のコーデを一枚</p><p className="photo-prompt-detail">全身でも、一部でも大丈夫</p><label className="photo-select" htmlFor="outfit-photo">写真を選択する</label></div></div>}
-          <input id="outfit-photo" className="hidden-file-input" type="file" accept="image/*" onChange={handlePhotoChange} />
         </section>
         {analysis && <section className="analysis-panel" aria-live="polite"><div className="analysis-score"><span>違和感チェック</span><strong>{analysis.score}</strong><small>/ 100</small></div><p className="analysis-summary">{analysis.summary}</p><div className="finding-list">{analysis.findings.map((f, i) => <article className="finding" key={`${f.category}-${i}`}><div className="finding-head"><span>{f.category}</span><b>{f.title}</b></div><p>{f.detail}</p></article>)}</div><p className="analysis-disclaimer">※外部AIやサーバーへ写真を送信せず、この端末のブラウザ内で画像の色・明るさ・構図を簡易分析しています。服の種類や素材を完全に認識するものではありません。</p></section>}
         <footer className="outfit-footer">写真はこの画面の中だけで扱われます。<br />うまく言葉にできない違和感も、そのままで。</footer>
